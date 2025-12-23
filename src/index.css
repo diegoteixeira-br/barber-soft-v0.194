@@ -2,6 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Pulse subtle animation for CTA */
+@keyframes pulse-subtle {
+  0%, 100% {
+    box-shadow: 0 0 20px hsl(var(--gold) / 0.4);
+  }
+  50% {
+    box-shadow: 0 0 40px hsl(var(--gold) / 0.6);
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
 /* BarberSoft SaaS Design System
    Dark theme with gold (#D4AF37) and orange neon (#FF6B00) accents
    All colors MUST be HSL.
