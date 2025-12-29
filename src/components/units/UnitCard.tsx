@@ -1,4 +1,4 @@
-import { Building2, MapPin, Phone, User, MoreVertical, Pencil, Trash2, MessageCircle, Settings2 } from "lucide-react";
+import { Building2, MapPin, Phone, User, MoreVertical, Pencil, Trash2, MessageCircle } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Unit } from "@/hooks/useUnits";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface UnitCardProps {
   unit: Unit;
@@ -18,8 +20,45 @@ interface UnitCardProps {
   onConfigureWhatsApp: (unit: Unit) => void;
 }
 
+type WhatsAppStatus = 'disconnected' | 'connected' | 'checking';
+
 export function UnitCard({ unit, onEdit, onDelete, onConfigureWhatsApp }: UnitCardProps) {
-  const hasWhatsApp = !!unit.evolution_instance_name;
+  const [whatsappStatus, setWhatsappStatus] = useState<WhatsAppStatus>('checking');
+
+  useEffect(() => {
+    const checkWhatsAppStatus = async () => {
+      // Se não tem instance_name configurado, está desconectado
+      if (!unit.evolution_instance_name) {
+        setWhatsappStatus('disconnected');
+        return;
+      }
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          setWhatsappStatus('disconnected');
+          return;
+        }
+
+        const { data, error } = await supabase.functions.invoke('evolution-whatsapp', {
+          body: { action: 'status', unit_id: unit.id }
+        });
+
+        if (error || !data?.success) {
+          setWhatsappStatus('disconnected');
+          return;
+        }
+
+        // Só mostra conectado se o state for "open"
+        setWhatsappStatus(data.state === 'open' ? 'connected' : 'disconnected');
+      } catch (err) {
+        console.error('Error checking WhatsApp status:', err);
+        setWhatsappStatus('disconnected');
+      }
+    };
+
+    checkWhatsAppStatus();
+  }, [unit.id, unit.evolution_instance_name]);
 
   return (
     <Card className="group relative overflow-hidden border-border bg-card transition-all duration-200 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
@@ -30,8 +69,13 @@ export function UnitCard({ unit, onEdit, onDelete, onConfigureWhatsApp }: UnitCa
           </div>
           <div>
             <h3 className="text-lg font-semibold text-foreground">{unit.name}</h3>
-            <div className="flex items-center gap-2 mt-1">
-              {hasWhatsApp ? (
+          <div className="flex items-center gap-2 mt-1">
+              {whatsappStatus === 'checking' ? (
+                <Badge variant="outline" className="text-xs text-muted-foreground">
+                  <MessageCircle className="mr-1 h-3 w-3 animate-pulse" />
+                  Verificando...
+                </Badge>
+              ) : whatsappStatus === 'connected' ? (
                 <Badge className="text-xs bg-green-500/20 text-green-400 border-green-500/30">
                   <MessageCircle className="mr-1 h-3 w-3" />
                   WhatsApp Conectado
@@ -39,7 +83,7 @@ export function UnitCard({ unit, onEdit, onDelete, onConfigureWhatsApp }: UnitCa
               ) : (
                 <Badge variant="outline" className="text-xs text-muted-foreground">
                   <MessageCircle className="mr-1 h-3 w-3" />
-                  WhatsApp não configurado
+                  WhatsApp não conectado
                 </Badge>
               )}
             </div>
