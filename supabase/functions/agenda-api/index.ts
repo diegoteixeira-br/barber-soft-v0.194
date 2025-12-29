@@ -30,18 +30,81 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body = await req.json();
-    const { action } = body;
+    const { action, instance_name } = body;
 
     console.log('Agenda API called with action:', action);
     console.log('Request body:', JSON.stringify(body));
 
+    // Se instance_name for fornecido, buscar a empresa e unit_id por ele
+    let resolvedUnitId = body.unit_id;
+    let companyId = null;
+    
+    if (instance_name && !resolvedUnitId) {
+      console.log(`Looking up company by instance_name: ${instance_name}`);
+      
+      const { data: company, error: companyError } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('evolution_instance_name', instance_name)
+        .maybeSingle();
+      
+      if (companyError) {
+        console.error('Error looking up company:', companyError);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Erro ao buscar empresa' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      if (!company) {
+        console.error(`Company not found for instance: ${instance_name}`);
+        return new Response(
+          JSON.stringify({ success: false, error: `Empresa não encontrada para a instância "${instance_name}"` }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      companyId = company.id;
+      console.log(`Found company: ${company.id}`);
+      
+      // Buscar a primeira unidade da empresa (ou a principal)
+      const { data: unit, error: unitError } = await supabase
+        .from('units')
+        .select('id')
+        .eq('company_id', company.id)
+        .limit(1)
+        .maybeSingle();
+      
+      if (unitError) {
+        console.error('Error looking up unit:', unitError);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Erro ao buscar unidade' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      if (!unit) {
+        console.error(`Unit not found for company: ${company.id}`);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Nenhuma unidade encontrada para esta empresa' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      resolvedUnitId = unit.id;
+      console.log(`Resolved unit_id: ${resolvedUnitId}`);
+    }
+
+    // Passar o unit_id resolvido para os handlers
+    const enrichedBody = { ...body, unit_id: resolvedUnitId, company_id: companyId };
+
     switch (action) {
       case 'check':
-        return await handleCheck(supabase, body, corsHeaders);
+        return await handleCheck(supabase, enrichedBody, corsHeaders);
       case 'create':
-        return await handleCreate(supabase, body, corsHeaders);
+        return await handleCreate(supabase, enrichedBody, corsHeaders);
       case 'cancel':
-        return await handleCancel(supabase, body, corsHeaders);
+        return await handleCancel(supabase, enrichedBody, corsHeaders);
       default:
         return new Response(
           JSON.stringify({ success: false, error: 'Ação inválida' }),
