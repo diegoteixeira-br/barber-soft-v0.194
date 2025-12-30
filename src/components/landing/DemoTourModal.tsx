@@ -452,11 +452,21 @@ export const DemoTourModal = ({ open, onOpenChange }: DemoTourModalProps) => {
   const [audioEnded, setAudioEnded] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioCache = useRef<Map<number, string>>(new Map());
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const playNarration = useCallback(async (slideIndex: number) => {
     if (isMuted) return;
     
     setAudioEnded(false);
+    
+    // Cancel any pending fetch request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    // Create new AbortController for this request
+    abortControllerRef.current = new AbortController();
+    const currentAbortController = abortControllerRef.current;
     
     // Stop any currently playing audio
     if (audioRef.current) {
@@ -489,14 +499,22 @@ export const DemoTourModal = ({ open, onOpenChange }: DemoTourModalProps) => {
           body: JSON.stringify({ 
             text: narrationTexts[slideIndex],
           }),
+          signal: currentAbortController.signal,
         }
       );
+
+      // Check if request was aborted
+      if (currentAbortController.signal.aborted) return;
 
       if (!response.ok) {
         throw new Error(`TTS request failed: ${response.status}`);
       }
 
       const audioBlob = await response.blob();
+      
+      // Check again if aborted before playing
+      if (currentAbortController.signal.aborted) return;
+      
       const audioUrl = URL.createObjectURL(audioBlob);
       
       // Cache the audio URL
@@ -507,6 +525,11 @@ export const DemoTourModal = ({ open, onOpenChange }: DemoTourModalProps) => {
       audio.onended = () => setAudioEnded(true);
       await audio.play();
     } catch (error) {
+      // Ignore abort errors (expected when changing slides)
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log(`Audio request for slide ${slideIndex} was cancelled`);
+        return;
+      }
       console.error("Failed to play narration:", error);
     } finally {
       setIsLoadingAudio(false);
@@ -593,6 +616,11 @@ export const DemoTourModal = ({ open, onOpenChange }: DemoTourModalProps) => {
     if (open) {
       setCurrentSlide(0);
     } else {
+      // Cancel any pending fetch requests
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
       // Stop audio when modal closes
       if (audioRef.current) {
         audioRef.current.pause();
