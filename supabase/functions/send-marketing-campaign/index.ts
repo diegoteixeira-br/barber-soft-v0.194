@@ -193,6 +193,7 @@ serve(async (req) => {
       campaign_id: campaign.id,
       callback_url: `${supabaseUrl}/functions/v1/campaign-callback`,
       update_status_url: `${supabaseUrl}/functions/v1/update-campaign-status`,
+      check_status_url: `${supabaseUrl}/functions/v1/check-campaign-status`,
       callback_secret: callbackSecret,
     };
 

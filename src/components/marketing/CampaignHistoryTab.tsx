@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { History, CheckCircle2, XCircle, Clock, Loader2, ChevronDown, ChevronUp, AlertCircle, Building2, Users, Image as ImageIcon } from "lucide-react";
+import { History, CheckCircle2, XCircle, Clock, Loader2, ChevronDown, ChevronUp, AlertCircle, Building2, Users, Image as ImageIcon, Ban } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUnit } from "@/contexts/UnitContext";
+import { toast } from "sonner";
 
 interface Campaign {
   id: string;
@@ -46,6 +47,7 @@ export function CampaignHistoryTab() {
   const [expandedCampaign, setExpandedCampaign] = useState<string | null>(null);
   const [campaignLogs, setCampaignLogs] = useState<Map<string, MessageLog[]>>(new Map());
   const [loadingLogs, setLoadingLogs] = useState<string | null>(null);
+  const [cancelingCampaign, setCancelingCampaign] = useState<string | null>(null);
   const { currentCompanyId } = useCurrentUnit();
 
   // Fetch campaigns
@@ -144,6 +146,42 @@ export function CampaignHistoryTab() {
     }
   };
 
+  const handleCancelCampaign = async (campaignId: string) => {
+    setCancelingCampaign(campaignId);
+    try {
+      const { data, error } = await supabase.functions.invoke("cancel-campaign", {
+        body: { campaign_id: campaignId },
+      });
+
+      if (error) {
+        console.error("Error canceling campaign:", error);
+        toast.error("Erro ao cancelar campanha");
+        return;
+      }
+
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      toast.success("Campanha cancelada com sucesso");
+      // Refresh logs if expanded
+      if (expandedCampaign === campaignId) {
+        setCampaignLogs((prev) => {
+          const newMap = new Map(prev);
+          newMap.delete(campaignId);
+          return newMap;
+        });
+        fetchLogs(campaignId);
+      }
+    } catch (err) {
+      console.error("Unexpected error:", err);
+      toast.error("Erro inesperado ao cancelar campanha");
+    } finally {
+      setCancelingCampaign(null);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "completed":
@@ -152,6 +190,8 @@ export function CampaignHistoryTab() {
         return <Badge variant="secondary" className="bg-blue-600 text-white"><Loader2 className="mr-1 h-3 w-3 animate-spin" />Em andamento</Badge>;
       case "failed":
         return <Badge variant="destructive"><XCircle className="mr-1 h-3 w-3" />Falhou</Badge>;
+      case "canceled":
+        return <Badge variant="outline" className="border-amber-500 text-amber-600"><Ban className="mr-1 h-3 w-3" />Cancelada</Badge>;
       default:
         return <Badge variant="outline"><Clock className="mr-1 h-3 w-3" />Pendente</Badge>;
     }
@@ -163,6 +203,8 @@ export function CampaignHistoryTab() {
         return <CheckCircle2 className="h-4 w-4 text-green-600" />;
       case "failed":
         return <XCircle className="h-4 w-4 text-destructive" />;
+      case "skipped":
+        return <Ban className="h-4 w-4 text-amber-500" />;
       default:
         return <Clock className="h-4 w-4 text-muted-foreground" />;
     }
@@ -241,6 +283,27 @@ export function CampaignHistoryTab() {
                             <span>{campaign.total_recipients}</span>
                           </div>
                         </div>
+                        {(campaign.status === "processing" || campaign.status === "pending") && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-amber-600 border-amber-500 hover:bg-amber-50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCancelCampaign(campaign.id);
+                            }}
+                            disabled={cancelingCampaign === campaign.id}
+                          >
+                            {cancelingCampaign === campaign.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Ban className="mr-1 h-4 w-4" />
+                                Cancelar
+                              </>
+                            )}
+                          </Button>
+                        )}
                         <CollapsibleTrigger asChild>
                           <Button variant="ghost" size="sm">
                             {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
