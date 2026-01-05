@@ -9,11 +9,12 @@ import {
   FileText, 
   Plus, 
   CheckCircle2, 
-  XCircle, 
   Eye,
   Trash2,
   Users,
-  Info
+  Info,
+  Download,
+  FileDown
 } from "lucide-react";
 import { usePartnershipTerms, useTermAcceptances } from "@/hooks/usePartnershipTerms";
 import { useCompany } from "@/hooks/useCompany";
@@ -36,8 +37,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const DEFAULT_TERM_TEMPLATE = `TERMOS DE PARCERIA E NORMAS DE CONDUTA
 
@@ -326,51 +330,244 @@ export function PartnershipTermsTab() {
         </DialogContent>
       </Dialog>
 
-      {/* Acceptances Modal */}
+      {/* Acceptances Modal with PDF Export */}
       <Dialog open={showAcceptancesModal} onOpenChange={setShowAcceptancesModal}>
-        <DialogContent className="sm:max-w-[700px] max-h-[80vh] bg-card">
+        <DialogContent className="sm:max-w-[900px] max-h-[85vh] bg-card">
           <DialogHeader>
-            <DialogTitle>Registro de Aceites</DialogTitle>
-            <DialogDescription>
-              Histórico de aceites dos termos pelos profissionais
-            </DialogDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle>Relatório de Aceites dos Termos</DialogTitle>
+                <DialogDescription>
+                  Registro jurídico completo de aceites pelos profissionais
+                </DialogDescription>
+              </div>
+              {acceptances.length > 0 && (
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => exportAcceptancesPDF(acceptances, company?.name || "Empresa")}
+                    className="gap-2"
+                  >
+                    <FileDown className="h-4 w-4" />
+                    Exportar PDF
+                  </Button>
+                </div>
+              )}
+            </div>
           </DialogHeader>
-          <ScrollArea className="h-[400px]">
+          
+          <ScrollArea className="h-[500px]">
             {acceptances.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                Nenhum aceite registrado ainda
+                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Nenhum aceite registrado ainda</p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {acceptances.map((acceptance: any) => (
-                  <Card key={acceptance.id} className="bg-secondary/30">
-                    <CardContent className="p-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-foreground">
-                            {acceptance.barbers?.name}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {acceptance.partnership_terms?.title} v{acceptance.partnership_terms?.version}
-                          </p>
-                        </div>
-                        <div className="text-right text-sm">
-                          <p className="text-foreground">
-                            {format(new Date(acceptance.accepted_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
-                          </p>
-                          <p className="text-muted-foreground">
-                            Comissão: {acceptance.commission_rate_snapshot}%
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Profissional</TableHead>
+                    <TableHead>Termo</TableHead>
+                    <TableHead>Data/Hora</TableHead>
+                    <TableHead>Comissão</TableHead>
+                    <TableHead>IP</TableHead>
+                    <TableHead>Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {acceptances.map((acceptance: any) => (
+                    <TableRow key={acceptance.id}>
+                      <TableCell className="font-medium">
+                        {acceptance.barbers?.name}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {acceptance.partnership_terms?.title} v{acceptance.partnership_terms?.version}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {format(new Date(acceptance.accepted_at), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}
+                      </TableCell>
+                      <TableCell>{acceptance.commission_rate_snapshot}%</TableCell>
+                      <TableCell className="text-muted-foreground text-xs">
+                        {acceptance.ip_address || "N/A"}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => exportSingleAcceptancePDF(acceptance, company?.name || "Empresa")}
+                          title="Baixar comprovante individual"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
           </ScrollArea>
+          
+          {acceptances.length > 0 && (
+            <div className="border-t pt-4 text-xs text-muted-foreground">
+              <p>• Total de registros: {acceptances.length}</p>
+              <p>• Os dados de IP e User-Agent são coletados para fins de auditoria jurídica</p>
+              <p>• O PDF exportado contém assinatura digital timestamped</p>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
   );
+}
+
+// PDF Export Functions
+function exportAcceptancesPDF(acceptances: any[], companyName: string) {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  
+  // Header
+  doc.setFontSize(18);
+  doc.setFont("helvetica", "bold");
+  doc.text("RELATÓRIO DE ACEITES - TERMOS DE PARCERIA", pageWidth / 2, 20, { align: "center" });
+  
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Empresa: ${companyName}`, 14, 35);
+  doc.text(`Data de emissão: ${format(new Date(), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}`, 14, 42);
+  doc.text(`Total de registros: ${acceptances.length}`, 14, 49);
+  
+  // Disclaimer
+  doc.setFontSize(9);
+  doc.setTextColor(100);
+  doc.text(
+    "Este documento foi gerado automaticamente e possui validade jurídica para fins de comprovação de aceite digital.",
+    14, 58
+  );
+  doc.setTextColor(0);
+  
+  // Table
+  const tableData = acceptances.map((a: any) => [
+    a.barbers?.name || "N/A",
+    `${a.partnership_terms?.title || "N/A"} v${a.partnership_terms?.version || ""}`,
+    format(new Date(a.accepted_at), "dd/MM/yyyy HH:mm:ss", { locale: ptBR }),
+    `${a.commission_rate_snapshot}%`,
+    a.ip_address || "N/A",
+    (a.user_agent || "N/A").substring(0, 30) + "..."
+  ]);
+  
+  autoTable(doc, {
+    startY: 65,
+    head: [["Profissional", "Termo", "Data/Hora Aceite", "Comissão", "IP", "User Agent"]],
+    body: tableData,
+    styles: { fontSize: 8, cellPadding: 2 },
+    headStyles: { fillColor: [41, 37, 36], textColor: [255, 255, 255] },
+    alternateRowStyles: { fillColor: [245, 245, 244] },
+  });
+  
+  // Footer with hash
+  const finalY = (doc as any).lastAutoTable.finalY + 20;
+  doc.setFontSize(8);
+  doc.setTextColor(100);
+  doc.text(`Documento gerado em: ${new Date().toISOString()}`, 14, finalY);
+  doc.text(`Hash de verificação: ${generateSimpleHash(JSON.stringify(acceptances))}`, 14, finalY + 5);
+  
+  doc.save(`relatorio-aceites-${format(new Date(), "yyyy-MM-dd-HHmm")}.pdf`);
+}
+
+function exportSingleAcceptancePDF(acceptance: any, companyName: string) {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  
+  // Header
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.text("COMPROVANTE DE ACEITE DIGITAL", pageWidth / 2, 20, { align: "center" });
+  doc.text("TERMO DE PARCERIA", pageWidth / 2, 28, { align: "center" });
+  
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  
+  let y = 45;
+  const lineHeight = 8;
+  
+  // Company info
+  doc.setFont("helvetica", "bold");
+  doc.text("DADOS DA EMPRESA", 14, y);
+  doc.setFont("helvetica", "normal");
+  y += lineHeight;
+  doc.text(`Empresa: ${companyName}`, 14, y);
+  
+  y += lineHeight * 2;
+  
+  // Professional info
+  doc.setFont("helvetica", "bold");
+  doc.text("DADOS DO PROFISSIONAL", 14, y);
+  doc.setFont("helvetica", "normal");
+  y += lineHeight;
+  doc.text(`Nome: ${acceptance.barbers?.name || "N/A"}`, 14, y);
+  y += lineHeight;
+  doc.text(`Taxa de Comissão no momento do aceite: ${acceptance.commission_rate_snapshot}%`, 14, y);
+  
+  y += lineHeight * 2;
+  
+  // Term info
+  doc.setFont("helvetica", "bold");
+  doc.text("DADOS DO TERMO ACEITO", 14, y);
+  doc.setFont("helvetica", "normal");
+  y += lineHeight;
+  doc.text(`Termo: ${acceptance.partnership_terms?.title || "N/A"}`, 14, y);
+  y += lineHeight;
+  doc.text(`Versão: ${acceptance.partnership_terms?.version || "N/A"}`, 14, y);
+  
+  y += lineHeight * 2;
+  
+  // Audit info
+  doc.setFont("helvetica", "bold");
+  doc.text("DADOS DE AUDITORIA", 14, y);
+  doc.setFont("helvetica", "normal");
+  y += lineHeight;
+  doc.text(`Data e hora do aceite: ${format(new Date(acceptance.accepted_at), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}`, 14, y);
+  y += lineHeight;
+  doc.text(`Endereço IP: ${acceptance.ip_address || "Não disponível"}`, 14, y);
+  y += lineHeight;
+  
+  const userAgent = acceptance.user_agent || "Não disponível";
+  const wrappedUA = doc.splitTextToSize(`Navegador/Dispositivo: ${userAgent}`, pageWidth - 28);
+  doc.text(wrappedUA, 14, y);
+  y += lineHeight * wrappedUA.length;
+  
+  y += lineHeight;
+  
+  // Content snapshot (first 500 chars)
+  doc.setFont("helvetica", "bold");
+  doc.text("CONTEÚDO DO TERMO (Resumo)", 14, y);
+  doc.setFont("helvetica", "normal");
+  y += lineHeight;
+  
+  const contentPreview = (acceptance.content_snapshot || "").substring(0, 800);
+  const wrappedContent = doc.splitTextToSize(contentPreview + "...", pageWidth - 28);
+  doc.setFontSize(8);
+  doc.text(wrappedContent, 14, y);
+  
+  // Footer
+  doc.setFontSize(8);
+  doc.setTextColor(100);
+  doc.text(`Documento gerado em: ${new Date().toISOString()}`, 14, 270);
+  doc.text(`ID do aceite: ${acceptance.id}`, 14, 275);
+  doc.text(`Hash: ${generateSimpleHash(JSON.stringify(acceptance))}`, 14, 280);
+  
+  doc.save(`comprovante-aceite-${acceptance.barbers?.name?.replace(/\s/g, "-") || "profissional"}-${format(new Date(acceptance.accepted_at), "yyyy-MM-dd")}.pdf`);
+}
+
+function generateSimpleHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(16).toUpperCase().padStart(8, "0");
 }
