@@ -83,6 +83,20 @@ export function PricingSection() {
           </p>
         </div>
 
+        {/* Banner Flutuante - Aviso de Teste Grátis */}
+        <div className="flex justify-center mb-8">
+          <div className="animate-float bg-gradient-to-r from-green-600 to-emerald-500 text-white px-6 py-3 rounded-full shadow-lg shadow-green-500/30">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🎉</span>
+              <p className="text-sm md:text-base font-semibold">
+                TESTE GRÁTIS! Plataforma liberada por tempo indeterminado —{" "}
+                <span className="underline">Sem cartão de crédito!</span>
+              </p>
+              <span className="text-xl">🎉</span>
+            </div>
+          </div>
+        </div>
+
         {/* Billing Toggle */}
         <div
           className={`flex items-center justify-center gap-4 mb-12 transition-all duration-700 ${
