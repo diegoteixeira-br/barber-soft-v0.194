@@ -11,7 +11,7 @@ export function CancellationPolicyTab() {
   const { settings, isLoading, updateSettings } = useBusinessSettings();
   
   const [formData, setFormData] = useState({
-    cancellation_time_limit_hours: 24,
+    cancellation_time_limit_minutes: 60,
     late_cancellation_fee_percent: 50,
     no_show_fee_percent: 100,
   });
@@ -19,7 +19,7 @@ export function CancellationPolicyTab() {
   useEffect(() => {
     if (settings) {
       setFormData({
-        cancellation_time_limit_hours: settings.cancellation_time_limit_hours ?? 24,
+        cancellation_time_limit_minutes: settings.cancellation_time_limit_minutes ?? 60,
         late_cancellation_fee_percent: settings.late_cancellation_fee_percent ?? 50,
         no_show_fee_percent: settings.no_show_fee_percent ?? 100,
       });
@@ -67,25 +67,36 @@ export function CancellationPolicyTab() {
               <div className="flex items-center gap-4">
                 <Input
                   type="number"
-                  min={1}
-                  max={72}
-                  value={formData.cancellation_time_limit_hours}
+                  min={5}
+                  max={1440}
+                  value={formData.cancellation_time_limit_minutes}
                   onChange={(e) => setFormData(prev => ({ 
                     ...prev, 
-                    cancellation_time_limit_hours: parseInt(e.target.value) || 24 
+                    cancellation_time_limit_minutes: parseInt(e.target.value) || 60 
                   }))}
                   className="w-24"
                 />
-                <span className="text-sm text-muted-foreground">horas antes do horário agendado</span>
+                <span className="text-sm text-muted-foreground">minutos antes do horário agendado</span>
               </div>
               <div className="bg-muted/50 rounded-lg p-4 text-sm">
                 <p className="text-muted-foreground">
-                  <strong>Exemplo:</strong> Se configurado para {formData.cancellation_time_limit_hours}h, 
+                  <strong>Exemplo:</strong> Se configurado para {formData.cancellation_time_limit_minutes} min, 
                   um agendamento para 14:00 pode ser cancelado sem custo até{" "}
-                  {formData.cancellation_time_limit_hours >= 24 
-                    ? `${Math.floor(formData.cancellation_time_limit_hours / 24)} dia(s) antes às 14:00`
-                    : `${formData.cancellation_time_limit_hours}h antes (${14 - (formData.cancellation_time_limit_hours % 24)}:00)`
-                  }
+                  {(() => {
+                    const totalMinutes = formData.cancellation_time_limit_minutes;
+                    const hours = Math.floor(totalMinutes / 60);
+                    const mins = totalMinutes % 60;
+                    const targetHour = 14;
+                    const targetMinute = 0;
+                    let resultHour = targetHour - hours;
+                    let resultMinute = targetMinute - mins;
+                    if (resultMinute < 0) {
+                      resultMinute += 60;
+                      resultHour -= 1;
+                    }
+                    if (resultHour < 0) resultHour += 24;
+                    return `${resultHour.toString().padStart(2, '0')}:${resultMinute.toString().padStart(2, '0')}`;
+                  })()}
                 </p>
               </div>
             </div>
@@ -200,7 +211,11 @@ export function CancellationPolicyTab() {
             <li className="flex items-start gap-2">
               <span className="text-green-500 font-bold">✓</span>
               <span>
-                <strong>Cancelamento Gratuito:</strong> Até {formData.cancellation_time_limit_hours} horas antes do horário agendado
+                <strong>Cancelamento Gratuito:</strong> Até{" "}
+                {formData.cancellation_time_limit_minutes >= 60 
+                  ? `${Math.floor(formData.cancellation_time_limit_minutes / 60)} hora(s)${formData.cancellation_time_limit_minutes % 60 > 0 ? ` e ${formData.cancellation_time_limit_minutes % 60} min` : ''}`
+                  : `${formData.cancellation_time_limit_minutes} minutos`
+                } antes do horário agendado
               </span>
             </li>
             <li className="flex items-start gap-2">

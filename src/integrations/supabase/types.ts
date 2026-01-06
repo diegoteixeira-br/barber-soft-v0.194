@@ -228,7 +228,7 @@ export type Database = {
           birthday_automation_enabled: boolean | null
           birthday_message_template: string | null
           business_name: string | null
-          cancellation_time_limit_hours: number | null
+          cancellation_time_limit_minutes: number | null
           closing_time: string | null
           created_at: string | null
           id: string
@@ -254,7 +254,7 @@ export type Database = {
           birthday_automation_enabled?: boolean | null
           birthday_message_template?: string | null
           business_name?: string | null
-          cancellation_time_limit_hours?: number | null
+          cancellation_time_limit_minutes?: number | null
           closing_time?: string | null
           created_at?: string | null
           id?: string
@@ -280,7 +280,7 @@ export type Database = {
           birthday_automation_enabled?: boolean | null
           birthday_message_template?: string | null
           business_name?: string | null
-          cancellation_time_limit_hours?: number | null
+          cancellation_time_limit_minutes?: number | null
           closing_time?: string | null
           created_at?: string | null
           id?: string
