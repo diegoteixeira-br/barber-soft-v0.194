@@ -36,6 +36,7 @@ export function useUnitEvolutionWhatsApp(unit: Unit | null): UseUnitEvolutionWha
   const [profile, setProfile] = useState<WhatsAppProfile | null>(null);
   const [currentInstanceName, setCurrentInstanceName] = useState<string | null>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const isCreatingRef = useRef(false);
 
   const stopPolling = useCallback(() => {
     if (pollingRef.current) {
@@ -132,6 +133,8 @@ export function useUnitEvolutionWhatsApp(unit: Unit | null): UseUnitEvolutionWha
       return;
     }
 
+    // Mark that we're creating - prevents useEffect from calling checkStatus
+    isCreatingRef.current = true;
     setIsLoading(true);
     setError(null);
     setConnectionState("loading");
@@ -170,6 +173,7 @@ export function useUnitEvolutionWhatsApp(unit: Unit | null): UseUnitEvolutionWha
         description: "Escaneie com seu WhatsApp para conectar.",
       });
     } catch (err) {
+      isCreatingRef.current = false;
       console.error('Create instance error:', err);
       const message = err instanceof Error ? err.message : 'Erro desconhecido';
       setError(message);
@@ -181,6 +185,10 @@ export function useUnitEvolutionWhatsApp(unit: Unit | null): UseUnitEvolutionWha
       });
     } finally {
       setIsLoading(false);
+      // Reset the creating flag after a short delay to allow state to settle
+      setTimeout(() => {
+        isCreatingRef.current = false;
+      }, 500);
     }
   }, [unit?.id, toast, startPolling]);
 
@@ -321,6 +329,13 @@ export function useUnitEvolutionWhatsApp(unit: Unit | null): UseUnitEvolutionWha
 
   // Check initial status on mount (with auto-refresh QR)
   useEffect(() => {
+    // Skip if we're in the process of creating an instance
+    // This prevents the race condition where checkStatus clears the QR code
+    if (isCreatingRef.current) {
+      console.log('Skipping checkStatus - instance creation in progress');
+      return;
+    }
+
     if (unit?.evolution_instance_name) {
       // Set initial profile from unit data if available
       if (unit.whatsapp_name || unit.whatsapp_phone || unit.whatsapp_picture_url) {
