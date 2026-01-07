@@ -166,9 +166,13 @@ serve(async (req) => {
       case 'register_client':
         return await handleRegisterClient(supabase, enrichedBody, corsHeaders);
       
+      // Atualizar dados de cliente existente
+      case 'update_client':
+        return await handleUpdateClient(supabase, enrichedBody, corsHeaders);
+      
       default:
         return new Response(
-          JSON.stringify({ success: false, error: 'Ação inválida. Actions válidas: check, check_availability, create, schedule_appointment, cancel, cancel_appointment, check_client, register_client' }),
+          JSON.stringify({ success: false, error: 'Ação inválida. Actions válidas: check, check_availability, create, schedule_appointment, cancel, cancel_appointment, check_client, register_client, update_client' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
     }
@@ -1083,6 +1087,129 @@ async function handleRegisterClient(supabase: any, body: any, corsHeaders: any) 
         tags: newClient.tags,
         total_visits: newClient.total_visits,
         created_at: newClient.created_at
+      }
+    }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
+// Handler para atualizar dados de cliente existente
+async function handleUpdateClient(supabase: any, body: any, corsHeaders: any) {
+  // Parâmetros aceitos (português e inglês)
+  const rawPhone = body.telefone || body.client_phone;
+  const clientPhone = rawPhone?.replace(/\D/g, '') || null;
+  const { unit_id } = body;
+
+  // Campos opcionais para atualização
+  const newName = body.nome || body.name || null;
+  const newBirthDate = body.data_nascimento || body.birth_date || null;
+  const newNotes = body.observacoes || body.observations || body.notes;
+
+  // Validações obrigatórias
+  if (!clientPhone) {
+    return new Response(
+      JSON.stringify({ success: false, error: 'Telefone é obrigatório para localizar o cliente' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  if (!unit_id) {
+    return new Response(
+      JSON.stringify({ success: false, error: 'unit_id é obrigatório' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Verificar se pelo menos um campo foi enviado para atualização
+  // Nota: newNotes pode ser string vazia (para limpar), então verificamos undefined
+  const hasNameToUpdate = newName !== null;
+  const hasBirthDateToUpdate = newBirthDate !== null;
+  const hasNotesToUpdate = newNotes !== undefined;
+
+  if (!hasNameToUpdate && !hasBirthDateToUpdate && !hasNotesToUpdate) {
+    return new Response(
+      JSON.stringify({ success: false, error: 'Envie pelo menos um campo para atualizar (name, birth_date, observations)' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  console.log(`Updating client with phone: ${clientPhone}, unit: ${unit_id}`);
+  console.log(`Fields to update - name: ${newName}, birth_date: ${newBirthDate}, notes: ${newNotes}`);
+
+  // Buscar cliente pelo telefone
+  const { data: client, error: clientError } = await supabase
+    .from('clients')
+    .select('id, name, phone, birth_date, notes')
+    .eq('unit_id', unit_id)
+    .eq('phone', clientPhone)
+    .maybeSingle();
+
+  if (clientError) {
+    console.error('Error fetching client:', clientError);
+    return new Response(
+      JSON.stringify({ success: false, error: 'Erro ao buscar cliente' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  if (!client) {
+    return new Response(
+      JSON.stringify({ success: false, error: 'Cliente não encontrado' }),
+      { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  console.log('Client found:', client);
+
+  // Montar objeto de atualização APENAS com campos preenchidos
+  const updateData: Record<string, any> = {};
+  const updatedFields: string[] = [];
+
+  if (hasNameToUpdate) {
+    updateData.name = newName;
+    updatedFields.push('name');
+  }
+  if (hasBirthDateToUpdate) {
+    updateData.birth_date = newBirthDate;
+    updatedFields.push('birth_date');
+  }
+  if (hasNotesToUpdate) {
+    updateData.notes = newNotes || null; // Permite limpar as observações
+    updatedFields.push('notes');
+  }
+  updateData.updated_at = new Date().toISOString();
+
+  console.log('Update data:', updateData);
+
+  // Executar atualização
+  const { data: updatedClient, error: updateError } = await supabase
+    .from('clients')
+    .update(updateData)
+    .eq('id', client.id)
+    .select('id, name, phone, birth_date, notes, updated_at')
+    .single();
+
+  if (updateError) {
+    console.error('Error updating client:', updateError);
+    return new Response(
+      JSON.stringify({ success: false, error: 'Erro ao atualizar dados do cliente' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  console.log('Client updated:', updatedClient);
+
+  return new Response(
+    JSON.stringify({
+      success: true,
+      message: 'Dados atualizados com sucesso',
+      updated_fields: updatedFields,
+      client: {
+        id: updatedClient.id,
+        name: updatedClient.name,
+        phone: updatedClient.phone,
+        birth_date: updatedClient.birth_date,
+        notes: updatedClient.notes
       }
     }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
