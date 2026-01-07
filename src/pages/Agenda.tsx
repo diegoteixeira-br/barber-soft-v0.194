@@ -91,7 +91,7 @@ export default function Agenda() {
     updateStatus,
     deleteAppointment,
     createQuickService,
-  } = useAppointments(dateRange.start, dateRange.end);
+  } = useAppointments(dateRange.start, dateRange.end, selectedBarberId);
 
   // Filter out cancelled appointments from main view
   const appointments = useMemo(() => {
@@ -228,7 +228,6 @@ export default function Agenda() {
                     closingTime={businessSettings?.closing_time || undefined}
                     timezone={currentUnit?.timezone || undefined}
                     isCompactMode={isCompactMode}
-                    selectedBarberId={selectedBarberId}
                   />
                 )}
                 {view === "day" && (
