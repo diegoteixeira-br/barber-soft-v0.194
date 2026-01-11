@@ -177,8 +177,8 @@ export default function Agenda() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col flex-1 min-h-0">
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "calendar" | "history")} className="flex flex-col flex-1 min-h-0">
+      <div className="flex flex-col h-full min-h-0 overflow-hidden">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "calendar" | "history")} className="flex flex-col h-full min-h-0 overflow-hidden">
           <div className="border-b border-border bg-card/50 px-4 pt-2 shrink-0">
             <TabsList className="grid w-[300px] grid-cols-2">
               <TabsTrigger value="calendar" className="gap-2">
@@ -192,7 +192,7 @@ export default function Agenda() {
             </TabsList>
           </div>
           
-          <TabsContent value="calendar" className="flex-1 flex flex-col mt-0 min-h-0 overflow-hidden">
+          <TabsContent value="calendar" className="flex-1 flex flex-col mt-0 min-h-0 overflow-hidden data-[state=active]:flex">
             <CalendarHeader
               currentDate={currentDate}
               view={view}

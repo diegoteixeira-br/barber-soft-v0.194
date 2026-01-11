@@ -123,9 +123,9 @@ export function CalendarDayView({
     <div 
       ref={containerRef}
       data-calendar-day-container
-      className="flex-1 flex flex-col overflow-hidden"
+      className="h-full flex flex-col overflow-hidden"
     >
-      <div className={`min-w-[600px] ${activeBarbers.length > 3 ? "min-w-[900px]" : ""} flex-1 min-h-0 flex flex-col`}>
+      <div className={`min-w-[600px] ${activeBarbers.length > 3 ? "min-w-[900px]" : ""} h-full flex flex-col overflow-hidden`}>
         {/* Header with barbers - FIXED */}
         <div 
           className="grid border-b border-border bg-card z-10 shrink-0" 

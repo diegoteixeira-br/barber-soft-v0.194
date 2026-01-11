@@ -133,9 +133,9 @@ export function CalendarWeekView({
     <div 
       ref={containerRef}
       data-calendar-container
-      className="flex-1 flex flex-col overflow-hidden"
+      className="h-full flex flex-col overflow-hidden"
     >
-      <div className="min-w-[800px] flex-1 min-h-0 flex flex-col">
+      <div className="min-w-[800px] h-full flex flex-col overflow-hidden">
         {/* Header with days - FIXED */}
         <div 
           className="grid grid-cols-8 border-b border-border bg-card z-10 shrink-0" 
