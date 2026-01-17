@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.get-remaining-spots]
 verify_jwt = false
+
+[functions.blog-share]
+verify_jwt = false

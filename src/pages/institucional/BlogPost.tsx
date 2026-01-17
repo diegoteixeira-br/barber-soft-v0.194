@@ -20,7 +20,8 @@ const BlogPost = () => {
     .filter(p => p.category === post.category && p.id !== post.id)
     .slice(0, 2);
 
-  const shareUrl = `${window.location.origin}/blog/${post.slug}`;
+  // URL for sharing - uses Edge Function to provide proper Open Graph meta tags for crawlers
+  const shareUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/blog-share?slug=${post.slug}`;
   const shareText = encodeURIComponent(post.title);
 
   const schema = {
