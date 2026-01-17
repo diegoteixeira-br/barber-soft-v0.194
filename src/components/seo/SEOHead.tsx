@@ -20,6 +20,11 @@ export const SEOHead = ({
   const fullTitle = `${title} | BarberSoft`;
   const siteUrl = 'https://barbersoft.com.br';
   const canonicalUrl = canonical ? `${siteUrl}${canonical}` : undefined;
+  
+  // Ensure ogImage is an absolute URL
+  const absoluteOgImage = ogImage.startsWith('http') 
+    ? ogImage 
+    : `${siteUrl}${ogImage}`;
 
   return (
     <Helmet>
@@ -33,7 +38,9 @@ export const SEOHead = ({
       <meta property="og:title" content={fullTitle} />
       <meta property="og:description" content={description} />
       <meta property="og:type" content={ogType} />
-      <meta property="og:image" content={`${siteUrl}${ogImage}`} />
+      <meta property="og:image" content={absoluteOgImage} />
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
       {canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
       <meta property="og:site_name" content="BarberSoft" />
       <meta property="og:locale" content="pt_BR" />
@@ -42,7 +49,7 @@ export const SEOHead = ({
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={fullTitle} />
       <meta name="twitter:description" content={description} />
-      <meta name="twitter:image" content={`${siteUrl}${ogImage}`} />
+      <meta name="twitter:image" content={absoluteOgImage} />
       
       {/* Schema.org */}
       {schema && (

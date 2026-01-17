@@ -3,7 +3,7 @@ import { InstitutionalLayout } from '@/layouts/InstitutionalLayout';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, Clock, ArrowLeft, Share2, Facebook, Twitter, Linkedin } from 'lucide-react';
+import { Calendar, Clock, ArrowLeft, Share2, Facebook, Twitter, Linkedin, MessageCircle } from 'lucide-react';
 import { blogPosts } from '@/data/blogPosts';
 import { Button } from '@/components/ui/button';
 
@@ -51,6 +51,8 @@ const BlogPost = () => {
         title={post.title}
         description={post.excerpt}
         canonical={`/blog/${post.slug}`}
+        ogImage={post.image}
+        ogType="article"
         schema={schema}
       />
 
@@ -165,6 +167,20 @@ const BlogPost = () => {
                 >
                   <Linkedin className="h-4 w-4 mr-2" />
                   LinkedIn
+                </a>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+              >
+                <a 
+                  href={`https://api.whatsapp.com/send?text=${shareText}%20${encodeURIComponent(shareUrl)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  WhatsApp
                 </a>
               </Button>
             </div>
