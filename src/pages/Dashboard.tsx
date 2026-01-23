@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { DollarSign, Calendar, TrendingUp, Users } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useDashboardData, calculatePercentageChange, formatCurrency } from "@/hooks/useDashboardData";
@@ -7,10 +8,15 @@ import { ServicesPieChart } from "@/components/dashboard/ServicesPieChart";
 import { TopBarberCard } from "@/components/dashboard/TopBarberCard";
 import { UpcomingAppointmentsList } from "@/components/dashboard/UpcomingAppointmentsList";
 import { FinancialOverviewChart } from "@/components/dashboard/FinancialOverviewChart";
-import { format } from "date-fns";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export default function Dashboard() {
+  const [customDateRange, setCustomDateRange] = useState({
+    start: startOfMonth(new Date()),
+    end: endOfMonth(new Date()),
+  });
+
   const { 
     metrics, 
     last7DaysRevenue, 
@@ -19,8 +25,9 @@ export default function Dashboard() {
     upcomingAppointments,
     financialOverviewWeek,
     financialOverviewMonth,
+    financialOverviewCustom,
     isLoading 
-  } = useDashboardData();
+  } = useDashboardData(customDateRange);
 
   const todayDate = format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR });
 
@@ -81,7 +88,10 @@ export default function Dashboard() {
         {/* Financial Overview - Full Width */}
         <FinancialOverviewChart 
           weekData={financialOverviewWeek} 
-          monthData={financialOverviewMonth} 
+          monthData={financialOverviewMonth}
+          customData={financialOverviewCustom}
+          customDateRange={customDateRange}
+          onCustomDateRangeChange={setCustomDateRange}
           isLoading={isLoading} 
         />
 

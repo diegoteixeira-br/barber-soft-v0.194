@@ -66,7 +66,7 @@ const SERVICE_COLORS = [
   "hsl(0, 72%, 51%)",    // Red
 ];
 
-export function useDashboardData() {
+export function useDashboardData(customDateRange?: { start: Date; end: Date }) {
   const { currentUnitId } = useCurrentUnit();
 
   const now = new Date();
@@ -365,6 +365,34 @@ export function useDashboardData() {
     };
   });
 
+  // Calculate financial overview for custom date range
+  const financialOverviewCustom: DailyFinancialData[] = customDateRange 
+    ? eachDayOfInterval({ start: customDateRange.start, end: customDateRange.end }).map(date => {
+        const dateStr = format(date, "yyyy-MM-dd");
+        const dayStart = startOfDay(date);
+        const dayEnd = endOfDay(date);
+
+        const dayRevenue = completedAppointments
+          .filter(a => {
+            const aptDate = new Date(a.start_time);
+            return aptDate >= dayStart && aptDate <= dayEnd;
+          })
+          .reduce((sum, a) => sum + Number(a.total_price), 0);
+
+        const dayExpenses = recentExpenses
+          .filter(e => e.expense_date === dateStr)
+          .reduce((sum, e) => sum + Number(e.amount), 0);
+
+        return {
+          date: dateStr,
+          label: format(date, "dd/MM", { locale: ptBR }),
+          revenue: dayRevenue,
+          expenses: dayExpenses,
+          profit: dayRevenue - dayExpenses,
+        };
+      })
+    : [];
+
   return {
     metrics,
     last7DaysRevenue,
@@ -373,6 +401,7 @@ export function useDashboardData() {
     upcomingAppointments: formattedUpcoming,
     financialOverviewWeek,
     financialOverviewMonth,
+    financialOverviewCustom,
     isLoading: isLoadingCompleted || isLoadingUpcoming || isLoadingExpenses,
   };
 }

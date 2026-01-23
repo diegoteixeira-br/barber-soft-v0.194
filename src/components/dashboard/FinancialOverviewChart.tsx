@@ -6,6 +6,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCurrency } from "@/hooks/useDashboardData";
 import { useState, useMemo } from "react";
+import { DateRangePicker } from "@/components/financeiro/DateRangePicker";
+import { startOfMonth, endOfMonth } from "date-fns";
 
 export interface DailyFinancialData {
   date: string;
@@ -18,6 +20,9 @@ export interface DailyFinancialData {
 interface FinancialOverviewChartProps {
   weekData: DailyFinancialData[];
   monthData: DailyFinancialData[];
+  customData: DailyFinancialData[];
+  customDateRange: { start: Date; end: Date };
+  onCustomDateRangeChange: (range: { start: Date; end: Date }) => void;
   isLoading?: boolean;
 }
 
@@ -86,10 +91,24 @@ function CustomTooltipContent({ active, payload, label }: any) {
   );
 }
 
-export function FinancialOverviewChart({ weekData, monthData, isLoading }: FinancialOverviewChartProps) {
-  const [period, setPeriod] = useState<"week" | "month">("week");
+export function FinancialOverviewChart({ 
+  weekData, 
+  monthData, 
+  customData,
+  customDateRange,
+  onCustomDateRangeChange,
+  isLoading 
+}: FinancialOverviewChartProps) {
+  const [period, setPeriod] = useState<"week" | "month" | "custom">("week");
 
-  const data = period === "week" ? weekData : monthData;
+  const data = useMemo(() => {
+    switch (period) {
+      case "week": return weekData;
+      case "month": return monthData;
+      case "custom": return customData;
+      default: return weekData;
+    }
+  }, [period, weekData, monthData, customData]);
 
   const totals = useMemo(() => {
     const revenue = data.reduce((sum, d) => sum + d.revenue, 0);
@@ -115,20 +134,30 @@ export function FinancialOverviewChart({ weekData, monthData, isLoading }: Finan
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <CardHeader className="flex flex-row items-center justify-between pb-2 gap-4 flex-wrap">
         <CardTitle className="flex items-center gap-2 text-base font-semibold">
           <TrendingUp className="h-5 w-5 text-primary" />
           Receitas vs Despesas
         </CardTitle>
-        <Select value={period} onValueChange={(v) => setPeriod(v as "week" | "month")}>
-          <SelectTrigger className="w-[140px] h-8">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="week">Esta Semana</SelectItem>
-            <SelectItem value="month">Este Mês</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select value={period} onValueChange={(v) => setPeriod(v as "week" | "month" | "custom")}>
+            <SelectTrigger className="w-[140px] h-8">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="week">Esta Semana</SelectItem>
+              <SelectItem value="month">Este Mês</SelectItem>
+              <SelectItem value="custom">Personalizado</SelectItem>
+            </SelectContent>
+          </Select>
+          {period === "custom" && (
+            <DateRangePicker
+              dateRange={customDateRange}
+              onDateRangeChange={onCustomDateRangeChange}
+              className="h-8"
+            />
+          )}
+        </div>
       </CardHeader>
       <CardContent className="pt-0">
         {!hasData ? (
