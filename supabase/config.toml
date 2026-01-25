@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.blog-share]
 verify_jwt = false
+
+[functions.get-company-stats]
+verify_jwt = false

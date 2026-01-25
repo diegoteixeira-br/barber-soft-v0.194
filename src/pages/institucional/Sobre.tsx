@@ -2,8 +2,10 @@ import { InstitutionalLayout } from '@/layouts/InstitutionalLayout';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { Card, CardContent } from '@/components/ui/card';
 import { Target, Eye, Heart, Users, Award, TrendingUp } from 'lucide-react';
+import { useCompanyStats } from '@/hooks/useCompanyStats';
 
 const Sobre = () => {
+  const { totalCompanies, isLoading } = useCompanyStats();
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'AboutPage',
@@ -48,8 +50,12 @@ const Sobre = () => {
               </p>
             </div>
             <div className="bg-gradient-to-br from-primary/20 to-primary/5 rounded-2xl p-8 text-center">
-              <div className="text-5xl font-bold text-primary mb-2">1000+</div>
-              <p className="text-muted-foreground">Barbearias utilizam o BarberSoft</p>
+              <div className="text-5xl font-bold text-primary mb-2">
+                {isLoading ? "..." : totalCompanies}
+              </div>
+              <p className="text-muted-foreground">
+                {totalCompanies === 1 ? "Barbearia utiliza" : "Barbearias utilizam"} o BarberSoft
+              </p>
             </div>
           </div>
         </section>
