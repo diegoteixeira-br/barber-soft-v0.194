@@ -1,67 +1,81 @@
 
+# Mover Chat de Suporte para o Menu Lateral
 
-# Redesign do Botão do Chat - Formato Nuvem de Conversa
+## O Que Será Feito
 
-## O Que Será Alterado
+Remover o botão flutuante do chat e adicionar um item no menu principal do sidebar, logo abaixo de "Configurações".
 
-Vou redesenhar o botão flutuante do chat de suporte para ter um formato de **balão de conversa (speech bubble)** com:
+## Mudanças Planejadas
 
-- Texto **"Suporte 24h"** escrito na parte superior
-- A letra **"J"** centralizada no meio do balão
-- Mantendo as cores douradas/gold atuais que você aprovou
-- Um "rabinho" de balão de conversa apontando para baixo/direita
+### 1. AppSidebar.tsx
 
-## Design Visual
+Adicionar novo item no menu:
 
 ```text
-   ┌─────────────────┐
-   │  Suporte 24h    │
-   │                 │
-   │       J         │
-   │                 │
-   └──────┬──────────┘
-          ▼
-     (rabinho do balão)
+Antes:
+  - Dashboard
+  - Agenda
+  - ...
+  - Unidades
+  - Configurações  ← último item
+
+Depois:
+  - Dashboard
+  - Agenda
+  - ...
+  - Unidades
+  - Configurações
+  - Suporte 24h    ← novo item (ícone: MessageCircle ou HeadphonesIcon)
 ```
 
-## Detalhes Técnicos
+O item de suporte vai:
+- Ter ícone de headphones/chat
+- Exibir "Suporte 24h" como texto
+- Ao clicar, abrir o modal/drawer do chat (não navegar para outra página)
 
-### Estrutura do Componente
+### 2. SupportChatWidget.tsx
 
-```text
-<button> (container flutuante)
-  └── <div> (formato balão com borda dourada)
-       ├── <span> "Suporte 24h" (texto superior)
-       ├── <span> "J" (letra centralizada, grande)
-       └── <div> (rabinho do balão - pseudo-elemento ou div)
-```
+Modificar para:
+- Remover o botão flutuante completamente
+- Receber uma prop `isOpen` controlada pelo sidebar
+- Exportar função para controlar abertura/fechamento
 
-### Cores e Estilo
+### 3. DashboardLayout.tsx
 
-| Elemento | Estilo |
-|----------|--------|
-| Fundo do balão | Transparente ou preto (#000) |
-| Borda | Dourada (primary - #D4AF37) 2px |
-| Texto "Suporte 24h" | Dourado, fonte pequena (text-xs) |
-| Letra "J" | Dourado, fonte grande e bold |
-| Rabinho | Borda dourada, mesma espessura |
+Ajustar para:
+- Gerenciar estado de abertura do chat
+- Passar estado para o AppSidebar e SupportChatWidget
 
-### Posicionamento
-
-- Fixo no canto inferior direito
-- Maior que o botão atual (aproximadamente 80x70px)
-- Animação de hover sutil (scale ou glow)
-
-## Arquivo a Modificar
+## Arquivos a Modificar
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/components/support/SupportChatWidget.tsx` | Substituir o botão circular pelo novo design de balão de conversa |
+| `src/components/layout/AppSidebar.tsx` | Adicionar item "Suporte 24h" no menu, com onClick para abrir chat |
+| `src/components/support/SupportChatWidget.tsx` | Remover botão flutuante, receber props de controle |
+| `src/components/layout/DashboardLayout.tsx` | Gerenciar estado global do chat |
 
-## Comportamento
+## Fluxo Técnico
 
-- Clique abre o chat (mesmo comportamento atual)
-- Animação de entrada suave
-- Efeito hover com leve brilho/scale
-- Some quando o chat está aberto (comportamento atual mantido)
+```text
+DashboardLayout
+  ├── isChatOpen state
+  ├── AppSidebar (recebe onOpenChat)
+  │     └── Item "Suporte 24h" → onClick chama onOpenChat()
+  └── SupportChatWidget (recebe isOpen, onClose)
+        └── Exibe chat apenas quando isOpen=true
+```
 
+## Visual no Menu
+
+O item terá a mesma aparência dos outros itens do menu:
+- Ícone `MessageCircle` ou `HeadphonesIcon` do lucide-react
+- Texto "Suporte 24h"
+- Hover com fundo secundário
+- Destaque dourado quando chat está aberto
+
+## Resultado
+
+- Menu lateral limpo e organizado
+- Chat acessível de forma intuitiva no mesmo local que outras ferramentas
+- Nenhum botão flutuante cobrindo conteúdo
+- Experiência consistente com o resto do sistema
