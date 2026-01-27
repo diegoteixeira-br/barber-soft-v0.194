@@ -41,10 +41,11 @@ export function CompaniesTable() {
   const [search, setSearch] = useState("");
   const [selectedCompany, setSelectedCompany] = useState<AdminCompany | null>(null);
 
-  const filteredCompanies = companies.filter(company =>
-    company.name.toLowerCase().includes(search.toLowerCase()) ||
-    (company.owner_email && company.owner_email.toLowerCase().includes(search.toLowerCase()))
-  );
+  const filteredCompanies = companies.filter(company => {
+    const displayName = company.business_name || company.name;
+    return displayName.toLowerCase().includes(search.toLowerCase()) ||
+      (company.owner_email && company.owner_email.toLowerCase().includes(search.toLowerCase()));
+  });
 
   const getTrialDaysLeft = (trialEndsAt: string | null) => {
     if (!trialEndsAt) return null;
@@ -95,10 +96,10 @@ export function CompaniesTable() {
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg bg-slate-700 flex items-center justify-center text-white font-bold">
-                        {company.name.charAt(0).toUpperCase()}
+                        {(company.business_name || company.name).charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <p className="font-medium text-white">{company.name}</p>
+                        <p className="font-medium text-white">{company.business_name || company.name}</p>
                         <p className="text-xs text-slate-400">{company.owner_email || "Email não disponível"}</p>
                         {company.is_blocked && (
                           <span className="text-xs text-red-400">Bloqueado</span>

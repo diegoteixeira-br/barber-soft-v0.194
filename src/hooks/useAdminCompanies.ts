@@ -5,6 +5,7 @@ import { toast } from "sonner";
 export interface AdminCompany {
   id: string;
   name: string;
+  business_name?: string;
   owner_user_id: string;
   owner_email?: string;
   created_at: string | null;
@@ -33,23 +34,35 @@ export function useAdminCompanies() {
       
       if (error) throw error;
       
+      // Fetch business_settings to get actual business names
+      const ownerIds = [...new Set((data || []).map(c => c.owner_user_id))];
+      const { data: settingsData } = await supabase
+        .from("business_settings")
+        .select("user_id, business_name")
+        .in("user_id", ownerIds);
+      
+      const businessNames: Record<string, string> = {};
+      settingsData?.forEach(s => {
+        if (s.business_name) {
+          businessNames[s.user_id] = s.business_name;
+        }
+      });
+      
       // Fetch owner emails
       let ownerEmails: Record<string, string> = {};
       try {
         const response = await supabase.functions.invoke("get-company-owners");
-        console.log("get-company-owners response:", response);
-        if (response.error) {
-          console.error("Edge function error:", response.error);
-        } else if (response.data?.ownerEmails) {
+        if (response.data?.ownerEmails) {
           ownerEmails = response.data.ownerEmails;
         }
       } catch (e) {
         console.error("Failed to fetch owner emails:", e);
       }
       
-      // Map emails to companies
+      // Map emails and business names to companies
       return (data || []).map(company => ({
         ...company,
+        business_name: businessNames[company.owner_user_id] || undefined,
         owner_email: ownerEmails[company.owner_user_id] || undefined
       }));
     }
