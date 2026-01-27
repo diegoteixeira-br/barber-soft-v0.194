@@ -163,7 +163,7 @@ export function UnitCard({ unit, onEdit, onDelete, onConfigureWhatsApp, onSetHea
               onClick={() => onConfigureWhatsApp(unit)}
             >
               <MessageCircle className="mr-2 h-4 w-4" />
-              WhatsApp Conectado
+              {unit.whatsapp_phone ? `Conectado: ${unit.whatsapp_phone}` : 'WhatsApp Conectado'}
             </Button>
           ) : (
             <Button 
