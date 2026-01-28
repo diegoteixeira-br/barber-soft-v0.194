@@ -25,10 +25,13 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { AdminCompany, useAdminCompanies } from "@/hooks/useAdminCompanies";
-import { MoreHorizontal, Search, Ban, CheckCircle, Clock, Eye, Trash2, UserX, Handshake, RefreshCw, X } from "lucide-react";
+import { MoreHorizontal, Search, Ban, CheckCircle, Clock, Eye, Trash2, UserX, Handshake, RefreshCw, X, ArrowUpDown } from "lucide-react";
 import { formatDistanceToNow, format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CompanyDetailsModal } from "./CompanyDetailsModal";
@@ -258,6 +261,37 @@ export function CompaniesTable() {
                           <Clock className="mr-2 h-4 w-4" />
                           Estender Trial (+7 dias)
                         </DropdownMenuItem>
+                        
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger className="text-slate-300 focus:text-white focus:bg-slate-700">
+                            <ArrowUpDown className="mr-2 h-4 w-4" />
+                            Alterar Plano
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent className="bg-slate-800 border-slate-700">
+                            <DropdownMenuItem 
+                              className={`text-blue-400 focus:text-blue-300 focus:bg-slate-700 ${company.plan_type === 'inicial' ? 'bg-slate-700/50' : ''}`}
+                              onClick={() => updatePlan({ companyId: company.id, planType: 'inicial' })}
+                            >
+                              Inicial
+                              {company.plan_type === 'inicial' && <span className="ml-2 text-xs">(atual)</span>}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              className={`text-indigo-400 focus:text-indigo-300 focus:bg-slate-700 ${company.plan_type === 'profissional' ? 'bg-slate-700/50' : ''}`}
+                              onClick={() => updatePlan({ companyId: company.id, planType: 'profissional' })}
+                            >
+                              Profissional
+                              {company.plan_type === 'profissional' && <span className="ml-2 text-xs">(atual)</span>}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              className={`text-amber-400 focus:text-amber-300 focus:bg-slate-700 ${company.plan_type === 'franquias' ? 'bg-slate-700/50' : ''}`}
+                              onClick={() => updatePlan({ companyId: company.id, planType: 'franquias' })}
+                            >
+                              Franquias
+                              {company.plan_type === 'franquias' && <span className="ml-2 text-xs">(atual)</span>}
+                            </DropdownMenuItem>
+                          </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+                        
                         <DropdownMenuSeparator className="bg-slate-700" />
                         <DropdownMenuItem 
                           className="text-slate-300 focus:text-white focus:bg-slate-700"
